@@ -1,0 +1,121 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:react/jsx-runtime",
+    "plugin:react-hooks/recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "plugins": [
+    "react",
+    "react-hooks"
+  ],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "rules": {
+    "react/prop-types": "off",
+    "react/display-name": "off",
+    "react/jsx-no-target-blank": "warn",
+    "react/jsx-key": ["error", { "checkFragmentShorthand": true }],
+    "react/jsx-no-duplicate-props": "error",
+    "react/jsx-no-undef": "error",
+    "react/jsx-uses-react": "off",
+    "react/jsx-uses-vars": "error",
+    "react/no-children-prop": "warn",
+    "react/no-danger-with-children": "error",
+    "react/no-deprecated": "warn",
+    "react/no-direct-mutation-state": "error",
+    "react/no-unescaped-entities": "warn",
+    "react/no-unknown-property": "error",
+    "react/self-closing-comp": "warn",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-debugger": "warn",
+    "no-unused-vars": ["warn", {
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_",
+      "ignoreRestSiblings": true
+    }],
+    "no-var": "error",
+    "prefer-const": "warn",
+    "prefer-template": "warn",
+    "object-shorthand": "warn",
+    "no-duplicate-imports": "error",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-return-await": "error",
+    "require-await": "warn",
+    "no-async-promise-executor": "error",
+    "curly": ["warn", "all"],
+    "max-depth": ["warn", 4],
+    "max-nested-callbacks": ["warn", 3],
+    "max-params": ["warn", 5],
+    "complexity": ["warn", 15],
+    "no-shadow": "warn",
+    "no-use-before-define": ["error", { "functions": false, "classes": true }]
+  },
+  "overrides": [
+    {
+      "files": ["src/main/**/*.js"],
+      "env": {
+        "node": true,
+        "browser": false
+      },
+      "globals": {
+        "__dirname": "readonly",
+        "__filename": "readonly",
+        "process": "readonly"
+      },
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["src/renderer/**/*.{js,jsx}"],
+      "env": {
+        "browser": true,
+        "node": false
+      },
+      "globals": {
+        "electronAPI": "readonly"
+      },
+      "rules": {
+        "no-restricted-globals": ["error", "event", "fdescribe"]
+      }
+    },
+    {
+      "files": ["vite.config.js"],
+      "env": {
+        "node": true
+      },
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/",
+    "build/",
+    "*.min.js",
+    "coverage/"
+  ]
+}
