@@ -3,12 +3,35 @@ const path = require('path');
 const Store = require('electron-store');
 
 class FileManager {
-  constructor() {
+  /**
+   * SECURITY FIX: Constructor now accepts Electron app object for secure path resolution
+   *
+   * @param {Electron.App} app - Electron app object (optional, defaults to process.cwd() for backward compatibility)
+   */
+  constructor(app = null) {
     this.store = new Store();
-    this.projectRoot = process.cwd();
+
+    /**
+     * SECURITY FIX: Use app.getAppPath() instead of process.cwd()
+     *
+     * WHY THIS MATTERS:
+     * - process.cwd() can be manipulated by changing directory before launch
+     * - app.getAppPath() always points to the application's actual location
+     * - Prevents directory traversal attacks at the root level
+     *
+     * BACKWARD COMPATIBILITY:
+     * Falls back to process.cwd() if app object not provided
+     * TODO: Remove fallback in production and require app object
+     */
+    this.projectRoot = app ? app.getAppPath() : process.cwd();
+
     this.generatedAgentsDir = path.join(this.projectRoot, '.claude', 'generated-agents');
     this.existingAgentsDir = path.join(this.projectRoot, '.claude', 'agents');
     this.templatePath = path.join(this.projectRoot, 'SUBAGENT_PROMPT_TEMPLATE.md');
+
+    // Maximum file size for PDF processing (10MB)
+    // Prevents DoS attacks via large file uploads
+    this.MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 
     // Ensure directories exist
     this.ensureDirectories();
@@ -117,22 +140,87 @@ ${content}
     }
   }
 
+  /**
+   * SECURITY FIX: Added input sanitization to prevent path traversal
+   *
+   * Consult with an existing agent by loading its full content.
+   *
+   * @param {string} agentType - Agent filename without extension
+   * @param {string} query - Context/question for the consultation
+   * @returns {Promise<Object>} Agent content and availability status
+   */
   async consultAgent(agentType, query) {
-    const agentPath = path.join(this.existingAgentsDir, `${agentType}.md`);
+    /**
+     * CRITICAL SECURITY FIX: Sanitize agentType to prevent path traversal
+     *
+     * VULNERABILITY FIXED:
+     * Before: consultAgent('../../etc/passwd', 'query') could read /etc/passwd
+     * After: Only alphanumeric characters and hyphens allowed
+     *
+     * SANITIZATION STEPS:
+     * 1. Convert to lowercase (consistency)
+     * 2. Replace all non-alphanumeric chars (except hyphens) with empty string
+     * 3. Trim any leading/trailing hyphens
+     * 4. Reject empty strings after sanitization
+     *
+     * Examples:
+     * - "security-auditor" → "security-auditor" (valid)
+     * - "../../etc/passwd" → "etcpasswd" (attack neutralized)
+     * - "../../../" → "" (rejected as invalid)
+     * - "agent@#$name" → "agentname" (special chars removed)
+     */
+    const safeAgentType = agentType
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '')  // Remove all unsafe characters
+      .replace(/^-+|-+$/g, '');     // Trim leading/trailing hyphens
+
+    // Reject invalid agent types (empty after sanitization)
+    if (!safeAgentType) {
+      return {
+        agentType,
+        content: null,
+        query,
+        available: false,
+        error: 'Invalid agent type',
+      };
+    }
+
+    // Construct path with sanitized filename
+    const agentPath = path.join(this.existingAgentsDir, `${safeAgentType}.md`);
+
+    /**
+     * SECURITY: Additional path validation
+     * Verify the resolved path is actually within the agents directory
+     * This is defense-in-depth against path traversal attacks
+     */
+    const resolvedPath = path.resolve(agentPath);
+    const resolvedBaseDir = path.resolve(this.existingAgentsDir);
+
+    if (!resolvedPath.startsWith(resolvedBaseDir)) {
+      console.error('Path traversal attempt detected:', agentType);
+      return {
+        agentType,
+        content: null,
+        query,
+        available: false,
+        error: 'Invalid agent path',
+      };
+    }
 
     try {
       const agentContent = await fs.readFile(agentPath, 'utf-8');
 
       // Return the agent content for the Head Architect to use
       return {
-        agentType,
+        agentType: safeAgentType,  // Return sanitized name
         content: agentContent,
         query,
         available: true,
       };
     } catch (error) {
+      // Don't leak file system details in error message
       return {
-        agentType,
+        agentType: safeAgentType,
         content: null,
         query,
         available: false,
@@ -151,7 +239,7 @@ ${content}
     }
   }
 
-  async loadSettings() {
+  loadSettings() {
     return this.store.get('settings', {
       theme: 'dark',
       autoSave: true,
@@ -159,7 +247,7 @@ ${content}
     });
   }
 
-  async saveSettings(settings) {
+  saveSettings(settings) {
     this.store.set('settings', settings);
   }
 }

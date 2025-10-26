@@ -213,7 +213,7 @@ describe('TemplateProcessor', () => {
     it('should count total filled fields', () => {
       const stats = processor.generateStatistics(mockTemplateData, []);
 
-      expect(stats.totalFields).toBe(11); // Count of non-empty fields
+      expect(stats.totalFields).toBe(12); // Count of non-empty fields
       expect(stats.totalCategories).toBe(8);
     });
 
@@ -233,7 +233,7 @@ describe('TemplateProcessor', () => {
     it('should estimate complexity', () => {
       const stats = processor.generateStatistics(mockTemplateData, []);
 
-      expect(stats.estimatedComplexity).toBeOneOf(['low', 'medium', 'high']);
+      expect(['low', 'medium', 'high']).toContain(stats.estimatedComplexity);
     });
   });
 

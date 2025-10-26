@@ -30,8 +30,9 @@ export function useAgentGenerator() {
         return;
       }
 
+      setLoading(true);
+
       try {
-        setLoading(true);
         const result = await window.electronAPI.processPDF(file.path);
 
         if (result.success) {
@@ -62,11 +63,17 @@ export function useAgentGenerator() {
   }, []);
 
   const generateAgent = useCallback(
+    // eslint-disable-next-line require-await
     async (agentName, agentType) => {
       setLoading(true);
       setError(null);
 
       try {
+        // Validate inputs
+        if (!agentName || !agentType) {
+          throw new Error('Agent name and type are required');
+        }
+
         // This will be implemented with the actual agent generation service
         // For now, we'll create a placeholder
         const agentData = {

@@ -101,13 +101,19 @@ describe('useAgentGenerator', () => {
 
       let loadingDuringCall = false;
 
-      global.window.electronAPI.processPDF = vi.fn().mockImplementation(() => {
-        loadingDuringCall = result.current.loading;
-        return Promise.resolve({
+      global.window.electronAPI.processPDF = vi.fn().mockImplementation(async () => {
+        // Wait for loading state to become true
+        await waitFor(() => {
+          if (result.current.loading) {
+            loadingDuringCall = true;
+          }
+        }, { timeout: 1000 });
+
+        return {
           success: true,
           text: 'Sample text',
           pages: 5,
-        });
+        };
       });
 
       const file = { name: 'test.pdf', path: '/path/to/test.pdf' };
